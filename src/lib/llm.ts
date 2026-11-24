@@ -60,7 +60,14 @@ async function streamLocal(
   signal?: AbortSignal,
 ) {
   await loadLocalModel(model, onProgress);
-  const chunks = await engine!.chat.completions.create({ messages, stream: true });
+  // Small models ramble when "thinking" is on, so answer directly.
+  const isQwen = model.startsWith('Qwen3');
+  const chunks = await engine!.chat.completions.create({
+    messages,
+    stream: true,
+    temperature: 0.3,
+    ...(isQwen ? { extra_body: { enable_thinking: false } } : {}),
+  });
   for await (const c of chunks) {
     if (signal?.aborted) {
       engine!.interruptGenerate();

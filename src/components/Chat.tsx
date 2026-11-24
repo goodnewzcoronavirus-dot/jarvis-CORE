@@ -11,17 +11,22 @@ interface Props {
   onConnect: () => void;
 }
 
+function fmtDate(d: string): string {
+  const t = new Date(d);
+  return isNaN(t.getTime()) ? d : t.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+
 // Turns connected data into a compact block the model can read.
-function buildContext(data: GoogleData, use: { inbox: boolean; calendar: boolean }): string {
+function buildContext(data: GoogleData, use: { inbox: boolean; calendar: boolean }, maxEmails: number): string {
   const parts: string[] = [];
   const now = new Date();
-  parts.push(`Current date and time: ${now.toLocaleString()}.`);
+  parts.push(`Right now it is ${fmtDate(now.toString())}.`);
   if (use.inbox && data.emails?.length) {
     parts.push(
       'Recent inbox emails:\n' +
         data.emails
-          .slice(0, 20)
-          .map((e) => `- ${e.unread ? '[unread] ' : ''}From ${e.from} | "${e.subject}" | ${e.date}\n  ${e.snippet}`)
+          .slice(0, maxEmails)
+          .map((e) => `- ${e.unread ? '[unread] ' : ''}From ${e.from} | "${e.subject}" | ${fmtDate(e.date)}\n  ${e.snippet}`)
           .join('\n'),
     );
   }
@@ -37,6 +42,11 @@ function buildContext(data: GoogleData, use: { inbox: boolean; calendar: boolean
     }
   }
   return parts.join('\n\n');
+}
+
+// Hide any <think>…</think> reasoning a model still emits.
+function visible(text: string): string {
+  return text.replace(/<think>[\s\S]*?(<\/think>|$)/g, '').trimStart();
 }
 
 const SYSTEM =
@@ -74,7 +84,7 @@ export function Chat({ settings, data, signedIn, onConnect }: Props) {
     setBusy(true);
     const ctrl = new AbortController();
     abortRef.current = ctrl;
-    const context = signedIn ? buildContext(data, { inbox: useInbox, calendar: useCal }) : `Current date and time: ${new Date().toLocaleString()}.`;
+    const context = signedIn ? buildContext(data, { inbox: useInbox, calendar: useCal }, settings.provider === 'local' ? 8 : 25) : `Current date and time: ${new Date().toLocaleString()}.`;
     const full: ChatMessage[] = [{ role: 'system', content: `${SYSTEM}\n\n${context}` }, ...history];
     try {
       await streamChat(
@@ -147,7 +157,7 @@ export function Chat({ settings, data, signedIn, onConnect }: Props) {
         )}
         {messages.map((m, i) => (
           <div key={i} className={`msg ${m.role}`}>
-            <div className="bubble">{m.content || (busy && i === messages.length - 1 ? '…' : '')}</div>
+            <div className="bubble">{visible(m.content) || (busy && i === messages.length - 1 ? '…' : '')}</div>
           </div>
         ))}
         <div ref={endRef} />
