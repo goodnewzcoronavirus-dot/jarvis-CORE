@@ -1,58 +1,49 @@
-# jarvis-core
+# Jarvis
 
-A stripped-down base of [OpenJarvis](https://github.com/open-jarvis/OpenJarvis) (Stanford Hazy Research + Scaling Intelligence Lab, Apache 2.0). It's the starting point for a personal task and goal copilot.
+A personal productivity copilot that runs entirely in your browser. There's no server and nothing to install.
 
-What's kept:
-- **Chat** with local models through Ollama, plus optional cloud models (add an API key in Settings)
-- **Data Sources**: Gmail, Google Calendar, Google Tasks, Outlook mail (IMAP), Notion, Slack, Obsidian, and more
-- **Settings**
+**Live app:** https://goodnewzcoronavirus-dot.github.io/jarvis-CORE/
 
-What's removed from the UI: the savings dashboard, the agents, logs and get-started pages, the system and cost panel, the "Win a Mac mini" leaderboard popup, and all external analytics (hard-disabled in the frontend and backend). The backend code for agents and the scheduler is still in `src/`, so it can come back later.
+## What it does now
 
-## Run it on your computer
+- **Chat** with an AI model that runs on your own device (WebLLM + WebGPU), or with a cloud model using your own API key (Claude or any OpenAI-compatible API).
+- **Google connector**: sign in once to see your Gmail inbox, the next 7 days of Google Calendar, and your Google Tasks. Chat can use them ("what should I focus on today?").
+- **Settings** for model choice, API keys and your Google Client ID. Everything is stored in your browser only.
 
-Install these first:
-- [uv](https://docs.astral.sh/uv/)
-- [Node.js](https://nodejs.org) 22.22 or newer
-- [Ollama](https://ollama.com/download)
-- [Rust](https://rustup.rs) (for memory and search over your connected data; the first build takes about 5 minutes)
+On-device models need Chrome or Edge on a laptop or desktop (WebGPU). The first message downloads the model once (1.6 to 3.9 GB depending on size), and after that it's cached. Phones should use a cloud model.
 
-Then run:
+## One-time setup
+
+### 1. Turn on GitHub Pages
+Repo → **Settings → Pages → Build and deployment → Source: GitHub Actions**. Every push to `main` then deploys automatically, in about a minute.
+
+### 2. Google sign-in (for Gmail / Calendar / Tasks)
+1. [Create a Google Cloud project](https://console.cloud.google.com/projectcreate) called "Jarvis".
+2. **APIs & Services → Library**: enable **Gmail API**, **Google Calendar API** and **Google Tasks API**.
+3. **OAuth consent screen**: choose External, fill in the app name and your email, and add your Google account under **Test users**.
+4. **Credentials → Create credentials → OAuth client ID → Web application**.
+5. **Authorized JavaScript origins**: add `https://goodnewzcoronavirus-dot.github.io` (and `http://localhost:5173` for local development).
+6. Paste the Client ID into Jarvis → Settings → Google connector.
+
+Access is read-only. While the Google app is in "Testing" mode, only the test users you add can sign in, and sign-in lasts about an hour before it asks again.
+
+## Develop locally
 
 ```bash
-git clone <this repo>
-cd jarvis-core
-./setup.sh        # Windows: .\setup.ps1
-./start.sh        # Windows: .\start.ps1
+npm install
+npm run dev      # http://localhost:5173
+npm run build    # production build into dist/
 ```
 
-Open http://localhost:8000.
-
-`setup.sh` pulls a small local model (`qwen3.5:2b`). To use a different one, set it first, e.g. `JARVIS_MODEL=qwen3.5:9b ./setup.sh`, or switch models from the model picker in the top left.
-
-## Use it from your phone (or any device)
-
-This uses [Tailscale](https://tailscale.com/download), a free private network for your own devices. Only devices signed in to your Tailscale account can open the app. It is never on the public internet.
-
-1. Install Tailscale on your computer and your phone, and sign in on both with the same account.
-2. Run `./start.sh --remote` (Windows: `.\start.ps1 -Remote`).
-3. It prints a link like `https://your-laptop.tailXXXX.ts.net`. Open that link on your phone.
-
-The computer has to be on and running `start.sh` for this to work. Don't use `tailscale funnel` with this app: Funnel makes it public, and your inbox would be readable by anyone.
-
-## Connect accounts
-
-Go to **Data Sources → + Add**. Google is one sign-in for Gmail, Calendar and Tasks. Outlook mail uses an app password, which some school or work accounts block. There's no Outlook calendar or OneDrive connector yet.
-
-## Where things live
+## Code map
 
 | Path | What |
 |---|---|
-| `frontend/src/pages/` | UI pages (Chat, Data Sources, Settings). New pages go here. |
-| `frontend/src/components/Sidebar/Sidebar.tsx` | Sidebar nav items |
-| `frontend/src/App.tsx` | Routes |
-| `src/openjarvis/connectors/` | Data source connectors |
-| `src/openjarvis/server/` | API server that also serves the built UI |
-| `~/.openjarvis/config.toml` | Your local config (model, engine) |
+| `src/App.tsx` | Layout, sidebar nav, Google connection state |
+| `src/components/` | Pages: `Chat`, `Inbox`, `Calendar`, `SettingsPage` |
+| `src/lib/llm.ts` | One streaming chat function over on-device / Claude / OpenAI-compatible |
+| `src/lib/google.ts` | Google sign-in and Gmail / Calendar / Tasks fetchers |
+| `src/lib/settings.ts` | Settings and the list of on-device models |
+| `.github/workflows/deploy.yml` | Build and deploy to GitHub Pages |
 
-After editing the frontend, rebuild with `cd frontend && npx npm@11 run build`, then restart. The original upstream README is in `docs/UPSTREAM_README.md`.
+The original OpenJarvis-based version is on the `openjarvis-base` branch.
