@@ -1,6 +1,7 @@
 import type { Settings, Provider } from '../lib/settings';
 import { LOCAL_MODELS } from '../lib/settings';
 import { hasWebGPU } from '../lib/llm';
+import { exportPlan, importPlan } from '../lib/plan';
 
 interface Props {
   settings: Settings;
@@ -123,6 +124,48 @@ export function SettingsPage({ settings, onChange }: Props) {
             <li>Copy the Client ID and paste it above.</li>
           </ol>
         </details>
+      </section>
+
+      <section className="card">
+        <h2>Backup</h2>
+        <p className="muted">
+          Your buckets, goals and tasks are saved in this browser only. Download a backup now and then, and use Import to move them to another
+          device or browser.
+        </p>
+        <div className="row-actions">
+          <button
+            className="btn small"
+            onClick={() => {
+              const blob = new Blob([exportPlan()], { type: 'application/json' });
+              const a = document.createElement('a');
+              a.href = URL.createObjectURL(blob);
+              a.download = `jarvis-backup-${new Date().toISOString().slice(0, 10)}.json`;
+              a.click();
+              URL.revokeObjectURL(a.href);
+            }}
+          >
+            Download backup
+          </button>
+          <label className="btn small ghost file-btn">
+            Import backup
+            <input
+              type="file"
+              accept="application/json,.json"
+              onChange={async (e) => {
+                const f = e.target.files?.[0];
+                if (!f) return;
+                if (!confirm('Replace everything in this browser with the backup?')) return;
+                try {
+                  importPlan(await f.text());
+                  alert('Backup imported.');
+                } catch (err) {
+                  alert((err as Error).message);
+                }
+                e.target.value = '';
+              }}
+            />
+          </label>
+        </div>
       </section>
 
       <section className="card">

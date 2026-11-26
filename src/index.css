@@ -167,3 +167,114 @@ code { background: var(--side); padding: 1px 6px; border-radius: 4px; font-size:
   .banner, .progress { margin-left: 14px; margin-right: 14px; }
   .cal-grid { grid-template-columns: 1fr; }
 }
+
+/* ---------- Plan ---------- */
+.nav-group { display: flex; flex-direction: column; gap: 2px; margin-bottom: 10px; }
+.nav-section { font-size: 11px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); padding: 4px 10px; }
+.danger { color: var(--error); }
+.nowrap { white-space: nowrap; }
+.center { text-align: center; margin-top: 24px; }
+.link { border: 0; background: none; color: var(--accent); cursor: pointer; padding: 0; font-size: 13px; }
+.link.danger { color: var(--error); }
+.icon-btn { border: 0; background: none; cursor: pointer; color: var(--muted); padding: 2px 6px; border-radius: 6px; font-size: 14px; line-height: 1; }
+.icon-btn:hover { background: var(--side); color: var(--text); }
+.row-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.file-btn { position: relative; overflow: hidden; display: inline-block; }
+.file-btn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; }
+.chip.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+.filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.bucket-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+
+.inline-edit { cursor: text; border-radius: 4px; padding: 1px 3px; margin: -1px -3px; }
+.inline-edit:hover { background: var(--side); }
+.inline-edit.placeholder { color: var(--muted); font-style: italic; }
+.inline-input { border: 1px solid var(--accent); border-radius: 6px; padding: 3px 6px; background: var(--panel); outline: none; width: 100%; font: inherit; }
+textarea.inline-input { resize: vertical; }
+
+.date-chip { position: relative; display: inline-flex; align-items: center; font-size: 12px; color: var(--muted); padding: 3px 8px; border-radius: 99px; border: 1px solid transparent; cursor: pointer; white-space: nowrap; }
+.date-chip:hover { border-color: var(--border); }
+.date-chip.set { border-color: var(--border); color: var(--text); }
+.date-chip.overdue { color: var(--error); border-color: color-mix(in srgb, var(--error) 40%, transparent); }
+.date-chip input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
+.date-chip input::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer; }
+
+.pri { border: 0; font-size: 11px; font-weight: 600; padding: 3px 7px; border-radius: 99px; cursor: pointer; }
+.pri-1 { background: color-mix(in srgb, var(--error) 15%, transparent); color: var(--error); }
+.pri-2 { background: var(--side); color: var(--muted); }
+.pri-3 { background: transparent; color: var(--muted); box-shadow: inset 0 0 0 1px var(--border); }
+
+.quick-add { display: flex; align-items: center; gap: 8px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 6px 8px; margin: 8px 0; }
+.quick-add input:not([type]), .quick-add > input { flex: 1; min-width: 0; border: 0; background: none; outline: none; padding: 4px; }
+.quick-add select { border: 1px solid var(--border); border-radius: 6px; background: var(--bg); padding: 3px 6px; font-size: 13px; max-width: 140px; }
+.quick-add .plus { color: var(--muted); width: 16px; text-align: center; }
+.quick-add.compact { margin: 4px 0; }
+
+.task-group h3, .deadlines h3, .goal-section h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin: 20px 0 6px; font-weight: 600; }
+.goal-section h2 { font-size: 14px; margin-top: 24px; }
+.task-group h3.danger { color: var(--error); }
+.count { background: var(--side); border-radius: 99px; padding: 1px 7px; font-size: 11px; margin-left: 4px; }
+.task-list { display: flex; flex-direction: column; }
+.task { border-bottom: 1px solid var(--border); padding: 7px 4px; }
+.task:last-child { border-bottom: 0; }
+.task-main { display: flex; align-items: center; gap: 10px; }
+.task-body { flex: 1; min-width: 0; }
+.task-title { display: inline-block; }
+.task.done .task-title { text-decoration: line-through; color: var(--muted); }
+.task-context { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 5px; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.task-meta { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.task-extra { padding: 6px 0 2px 30px; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.task-notes { font-size: 13px; color: var(--muted); white-space: pre-wrap; width: 100%; }
+.check { width: 17px; height: 17px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; margin: 0; }
+
+.deadline-list { display: flex; flex-direction: column; gap: 4px; }
+.deadline { display: flex; align-items: center; gap: 12px; padding: 7px 12px; background: var(--panel); border: 1px solid var(--border); border-radius: 8px; font-size: 14px; }
+.deadline-date { font-weight: 600; color: var(--accent); width: 96px; flex-shrink: 0; font-size: 13px; }
+.deadline.overdue .deadline-date { color: var(--error); }
+.deadline-title { flex: 1; display: flex; align-items: center; gap: 6px; min-width: 0; }
+
+.bucket-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.bucket-card { text-align: left; background: var(--panel); border: 1px solid var(--border); border-top: 4px solid var(--border); border-radius: var(--radius); padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; cursor: pointer; }
+.bucket-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+.bucket-card.new { cursor: default; border-style: dashed; border-top-width: 1px; }
+.bucket-card.new input { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; background: var(--bg); }
+.bucket-name { font-weight: 700; font-size: 16px; }
+.starters { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.pbar { height: 5px; background: var(--side); border-radius: 99px; overflow: hidden; }
+.pbar-fill { height: 100%; background: var(--accent); border-radius: 99px; transition: width 0.3s; }
+
+.color-pick { display: flex; gap: 4px; margin-left: auto; }
+.swatch { width: 16px; height: 16px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
+.swatch.on { border-color: var(--text); }
+.page-head h1 { flex-shrink: 1; min-width: 0; }
+
+.goal { background: var(--panel); border: 1px solid var(--border); border-left: 4px solid var(--border); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
+.goal.done { opacity: 0.65; }
+.goal-head, .ms-head { display: flex; align-items: center; gap: 8px; }
+.goal-title { font-weight: 700; font-size: 16px; flex: 1; min-width: 0; }
+.goal.done .goal-title { text-decoration: line-through; }
+.goal-body { display: flex; flex-direction: column; gap: 6px; padding-left: 26px; }
+.goal-why { font-size: 13px; color: var(--muted); }
+.goal-actions { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; }
+.milestone { border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; background: var(--bg); }
+.milestone.done { opacity: 0.6; }
+.ms-title { flex: 1; font-weight: 600; min-width: 0; }
+.milestone.done .ms-title { text-decoration: line-through; }
+.ms-icon { color: var(--accent); font-size: 11px; }
+.ms-body { padding-left: 26px; }
+
+.suggest { border: 1px dashed var(--accent); border-radius: 8px; padding: 10px 12px; background: var(--accent-soft); display: flex; flex-direction: column; gap: 6px; }
+.suggest-head { display: flex; justify-content: space-between; align-items: center; }
+.suggest-ms { display: flex; flex-direction: column; gap: 3px; }
+.suggest label { display: flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; }
+.suggest-task { padding-left: 24px; }
+
+@media (max-width: 760px) {
+  .goal-body, .ms-body { padding-left: 4px; }
+  .color-pick { display: none; }
+  .quick-add { flex-wrap: wrap; }
+  .quick-add input:not([type]), .quick-add > input { flex-basis: calc(100% - 30px); }
+}
+.page-head .btn.back-btn { margin-left: 0; }

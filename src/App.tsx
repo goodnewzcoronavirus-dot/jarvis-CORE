@@ -6,8 +6,10 @@ import { Chat } from './components/Chat';
 import { Inbox } from './components/Inbox';
 import { Calendar } from './components/Calendar';
 import { SettingsPage } from './components/SettingsPage';
+import { Today } from './components/plan/Today';
+import { Buckets } from './components/plan/Buckets';
 
-export type Page = 'chat' | 'inbox' | 'calendar' | 'settings';
+export type Page = 'today' | 'buckets' | 'chat' | 'inbox' | 'calendar' | 'settings';
 
 export interface GoogleData {
   emails: Email[] | null;
@@ -15,15 +17,27 @@ export interface GoogleData {
   tasks: GTask[] | null;
 }
 
-const NAV: { id: Page; label: string; icon: string }[] = [
-  { id: 'chat', label: 'Chat', icon: '💬' },
-  { id: 'inbox', label: 'Inbox', icon: '✉️' },
-  { id: 'calendar', label: 'Calendar', icon: '📅' },
-  { id: 'settings', label: 'Settings', icon: '⚙️' },
+const NAV: { section: string; items: { id: Page; label: string; icon: string }[] }[] = [
+  {
+    section: 'Plan',
+    items: [
+      { id: 'today', label: 'Today', icon: '☀️' },
+      { id: 'buckets', label: 'Buckets', icon: '🗂️' },
+    ],
+  },
+  {
+    section: 'Assist',
+    items: [
+      { id: 'chat', label: 'Chat', icon: '💬' },
+      { id: 'inbox', label: 'Inbox', icon: '✉️' },
+      { id: 'calendar', label: 'Calendar', icon: '📅' },
+    ],
+  },
+  { section: '', items: [{ id: 'settings', label: 'Settings', icon: '⚙️' }] },
 ];
 
 export default function App() {
-  const [page, setPage] = useState<Page>('chat');
+  const [page, setPage] = useState<Page>('today');
   const [settings, setSettingsState] = useState<Settings>(loadSettings);
   const [signedIn, setSignedIn] = useState(false);
   const [data, setData] = useState<GoogleData>({ emails: null, events: null, tasks: null });
@@ -85,11 +99,16 @@ export default function App() {
       <aside className={`sidebar ${navOpen ? 'open' : ''}`}>
         <div className="brand">Jarvis</div>
         <nav>
-          {NAV.map((n) => (
-            <button key={n.id} className={`nav-item ${page === n.id ? 'active' : ''}`} onClick={() => go(n.id)}>
-              <span className="nav-icon">{n.icon}</span>
-              {n.label}
-            </button>
+          {NAV.map((g) => (
+            <div key={g.section || 'misc'} className="nav-group">
+              {g.section && <div className="nav-section">{g.section}</div>}
+              {g.items.map((n) => (
+                <button key={n.id} className={`nav-item ${page === n.id ? 'active' : ''}`} onClick={() => go(n.id)}>
+                  <span className="nav-icon">{n.icon}</span>
+                  {n.label}
+                </button>
+              ))}
+            </div>
           ))}
         </nav>
         <div className="connect-box">
@@ -122,6 +141,8 @@ export default function App() {
             </button>
           </div>
         )}
+        {page === 'today' && <Today onOpenBuckets={() => go('buckets')} />}
+        {page === 'buckets' && <Buckets settings={settings} />}
         {page === 'chat' && <Chat settings={settings} data={data} signedIn={signedIn} onConnect={connect} />}
         {page === 'inbox' && <Inbox emails={data.emails} signedIn={signedIn} onConnect={connect} />}
         {page === 'calendar' && (
