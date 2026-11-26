@@ -10,7 +10,7 @@ A personal productivity copilot that runs entirely in your browser. There's no s
 - **Buckets > Goals > Milestones > Tasks.** Goals have a target date and a "why". Tasks can also sit directly in a bucket.
 - **Jarvis schedules for you.** Every open task gets a do-date: earliest deadline first, inherited from its milestone or goal, with a daily limit (default 4/day). Steps inside a goal or milestone keep the order you added them. Set a deadline or pin a day from a task's ⋯ menu only when you need to.
 - **Today**: one "Do this now" task (Done / Later), the rest of today, an add-task box, this week as a mini calendar, and each goal's progress with a note only when something needs attention.
-- **Calendar**: week and month views of every planned task, colored by bucket, plus milestone (◆) and goal (⚑) dates and Google Calendar events. Click a task for details; drag it to another day to move it. Click a bucket in the legend to hide it.
+- **Calendar (home screen)**: Canvas-style. Left: New task, a mini month with colored dots, and your buckets as color toggles. Center: Month / Week / Agenda with tasks as bucket-colored chips, milestones (◆), goal targets (⚑) and Google events. Right: today's to-do list and what's coming up. Click a day to add a task on it, click a task for details, drag to reschedule. Keys: ← → move, T today, M/W/A views, N new task.
 - **Plan with AI / Sync with Claude**: send a thought plus your whole plan to Claude Haiku in-app (API key), or copy it into any Claude chat (your subscription, with research and connectors). Paste the reply back, review the proposed changes, apply. Format: see `src/lib/bridge.ts`.
 - Saved in your browser. Settings → Backup to export/import a JSON copy.
 

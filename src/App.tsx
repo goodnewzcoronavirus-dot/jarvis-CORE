@@ -8,9 +8,8 @@ import { SettingsPage } from './components/SettingsPage';
 import { Today } from './components/plan/Today';
 import { Buckets } from './components/plan/Buckets';
 import { Bridge } from './components/plan/Bridge';
-import { PlanCalendar } from './components/plan/PlanCalendar';
-import { usePlan } from './lib/plan';
-import { useSchedule } from './lib/schedule';
+import { CalendarHome } from './components/plan/CalendarHome';
+import { Cursor } from './components/Cursor';
 
 export type Page = 'today' | 'buckets' | 'chat' | 'inbox' | 'calendar' | 'settings';
 
@@ -40,12 +39,12 @@ function Icon({ name }: { name: keyof typeof ICONS }) {
 }
 
 const NAV: { section: string; items: { id: Page; label: string }[] }[] = [
-  { section: 'Plan', items: [{ id: 'today', label: 'Today' }, { id: 'calendar', label: 'Calendar' }, { id: 'buckets', label: 'Buckets' }] },
+  { section: 'Plan', items: [{ id: 'calendar', label: 'Calendar' }, { id: 'today', label: 'Today' }, { id: 'buckets', label: 'Buckets' }] },
   { section: 'Assist', items: [{ id: 'chat', label: 'Chat' }, { id: 'inbox', label: 'Inbox' }] },
 ];
 
 export default function App() {
-  const [page, setPage] = useState<Page>('today');
+  const [page, setPage] = useState<Page>('calendar');
   const [settings, setSettingsState] = useState<Settings>(loadSettings);
   const [signedIn, setSignedIn] = useState(false);
   const [data, setData] = useState<GoogleData>({ emails: null, events: null, tasks: null });
@@ -103,7 +102,7 @@ export default function App() {
             <div key={g.section} className="nav-group">
               <div className="nav-section">{g.section}</div>
               {g.items.map((n) => (
-                <button key={n.id} className={`nav-item ${page === n.id ? 'active' : ''}`} onClick={() => setPage(n.id)}>
+                <button key={n.id} className={`nav-item ${page === n.id ? 'active' : ''}`} onClick={() => setPage(n.id)} data-tip={n.label}>
                   <Icon name={n.id} />
                   <span>{n.label}</span>
                 </button>
@@ -112,11 +111,11 @@ export default function App() {
           ))}
         </nav>
         <div className="rail-foot">
-          <button className="nav-item claude" onClick={() => setBridge({ text: '', mode: 'claude' })}>
+          <button className="nav-item claude" onClick={() => setBridge({ text: '', mode: 'claude' })} data-tip="Sync with Claude">
             <Icon name="claude" />
             <span>Sync with Claude</span>
           </button>
-          <button className={`nav-item ${page === 'settings' ? 'active' : ''}`} onClick={() => setPage('settings')}>
+          <button className={`nav-item ${page === 'settings' ? 'active' : ''}`} onClick={() => setPage('settings')} data-tip="Settings">
             <Icon name="settings" />
             <span>Settings</span>
           </button>
@@ -141,7 +140,7 @@ export default function App() {
         </div>
       </aside>
 
-      <main className="main">
+      <main className="main" key={page}>
         {error && (
           <div className="banner error">
             {error}
@@ -165,19 +164,21 @@ export default function App() {
         {page === 'chat' && <Chat settings={settings} data={data} signedIn={signedIn} onConnect={connect} />}
         {page === 'inbox' && <Inbox emails={data.emails} signedIn={signedIn} onConnect={connect} />}
         {page === 'calendar' && (
-          <CalendarPage
+          <CalendarHome
             events={data.events ?? []}
             onOpenBucket={(id) => {
               setOpenBucket(id);
               setPage('buckets');
             }}
+            onOpenBuckets={() => setPage('buckets')}
+            onThink={() => setBridge({ text: '', mode: 'think' })}
           />
         )}
         {page === 'settings' && <SettingsPage settings={settings} onChange={setSettings} />}
       </main>
 
       <nav className="tabbar" aria-label="Main">
-        {(['today', 'calendar', 'buckets', 'chat', 'settings'] as Page[]).map((id) => (
+        {(['calendar', 'today', 'buckets', 'chat', 'settings'] as Page[]).map((id) => (
           <button key={id} className={page === id ? 'active' : ''} onClick={() => setPage(id)}>
             <Icon name={id} />
             <span>{id === 'today' ? 'Today' : id[0].toUpperCase() + id.slice(1)}</span>
@@ -189,18 +190,9 @@ export default function App() {
         </button>
       </nav>
 
+      <Cursor />
       {bridge && <Bridge settings={settings} initialText={bridge.text} initialMode={bridge.mode} onClose={() => setBridge(null)} />}
     </div>
   );
 }
 
-function CalendarPage({ events, onOpenBucket }: { events: CalEvent[]; onOpenBucket: (id: string) => void }) {
-  const plan = usePlan();
-  const schedule = useSchedule(plan);
-  return (
-    <div className="page calendar-page">
-      <PlanCalendar schedule={schedule} events={events} onOpenBucket={onOpenBucket} />
-      <p className="muted hint">Drag a task to another day to move it. Click a task for details.</p>
-    </div>
-  );
-}
