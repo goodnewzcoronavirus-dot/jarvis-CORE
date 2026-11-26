@@ -4,11 +4,13 @@ import * as google from './lib/google';
 import type { Email, CalEvent, GTask } from './lib/google';
 import { Chat } from './components/Chat';
 import { Inbox } from './components/Inbox';
-import { Calendar } from './components/Calendar';
 import { SettingsPage } from './components/SettingsPage';
 import { Today } from './components/plan/Today';
 import { Buckets } from './components/plan/Buckets';
 import { Bridge } from './components/plan/Bridge';
+import { PlanCalendar } from './components/plan/PlanCalendar';
+import { usePlan } from './lib/plan';
+import { useSchedule } from './lib/schedule';
 
 export type Page = 'today' | 'buckets' | 'chat' | 'inbox' | 'calendar' | 'settings';
 
@@ -38,8 +40,8 @@ function Icon({ name }: { name: keyof typeof ICONS }) {
 }
 
 const NAV: { section: string; items: { id: Page; label: string }[] }[] = [
-  { section: 'Plan', items: [{ id: 'today', label: 'Today' }, { id: 'buckets', label: 'Buckets' }] },
-  { section: 'Assist', items: [{ id: 'chat', label: 'Chat' }, { id: 'inbox', label: 'Inbox' }, { id: 'calendar', label: 'Calendar' }] },
+  { section: 'Plan', items: [{ id: 'today', label: 'Today' }, { id: 'calendar', label: 'Calendar' }, { id: 'buckets', label: 'Buckets' }] },
+  { section: 'Assist', items: [{ id: 'chat', label: 'Chat' }, { id: 'inbox', label: 'Inbox' }] },
 ];
 
 export default function App() {
@@ -155,18 +157,27 @@ export default function App() {
               setOpenBucket(id);
               setPage('buckets');
             }}
+            onOpenCalendar={() => setPage('calendar')}
             onThink={(text, mode) => setBridge({ text, mode })}
           />
         )}
         {page === 'buckets' && <Buckets settings={settings} openId={openBucket} onOpened={() => setOpenBucket('')} />}
         {page === 'chat' && <Chat settings={settings} data={data} signedIn={signedIn} onConnect={connect} />}
         {page === 'inbox' && <Inbox emails={data.emails} signedIn={signedIn} onConnect={connect} />}
-        {page === 'calendar' && <Calendar events={data.events} tasks={data.tasks} signedIn={signedIn} onConnect={connect} />}
+        {page === 'calendar' && (
+          <CalendarPage
+            events={data.events ?? []}
+            onOpenBucket={(id) => {
+              setOpenBucket(id);
+              setPage('buckets');
+            }}
+          />
+        )}
         {page === 'settings' && <SettingsPage settings={settings} onChange={setSettings} />}
       </main>
 
       <nav className="tabbar" aria-label="Main">
-        {(['today', 'buckets', 'chat', 'inbox', 'settings'] as Page[]).map((id) => (
+        {(['today', 'calendar', 'buckets', 'chat', 'settings'] as Page[]).map((id) => (
           <button key={id} className={page === id ? 'active' : ''} onClick={() => setPage(id)}>
             <Icon name={id} />
             <span>{id === 'today' ? 'Today' : id[0].toUpperCase() + id.slice(1)}</span>
@@ -179,6 +190,17 @@ export default function App() {
       </nav>
 
       {bridge && <Bridge settings={settings} initialText={bridge.text} initialMode={bridge.mode} onClose={() => setBridge(null)} />}
+    </div>
+  );
+}
+
+function CalendarPage({ events, onOpenBucket }: { events: CalEvent[]; onOpenBucket: (id: string) => void }) {
+  const plan = usePlan();
+  const schedule = useSchedule(plan);
+  return (
+    <div className="page calendar-page">
+      <PlanCalendar schedule={schedule} events={events} onOpenBucket={onOpenBucket} />
+      <p className="muted hint">Drag a task to another day to move it. Click a task for details.</p>
     </div>
   );
 }

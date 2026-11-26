@@ -9,7 +9,8 @@ A personal productivity copilot that runs entirely in your browser. There's no s
 **Plan** (the organizing side)
 - **Buckets > Goals > Milestones > Tasks.** Goals have a target date and a "why". Tasks can also sit directly in a bucket.
 - **Jarvis schedules for you.** Every open task gets a do-date: earliest deadline first, inherited from its milestone or goal, with a daily limit (default 4/day). Steps inside a goal or milestone keep the order you added them. Set a deadline or pin a day from a task's ⋯ menu only when you need to.
-- **Today**: a command line (Enter adds a task, each pasted line becomes one), today's run, a 7-day load strip, and **Telemetry**: each goal's % done, milestones, projected finish and whether it lands before its target.
+- **Today**: one "Do this now" task (Done / Later), the rest of today, an add-task box, this week as a mini calendar, and each goal's progress with a note only when something needs attention.
+- **Calendar**: week and month views of every planned task, colored by bucket, plus milestone (◆) and goal (⚑) dates and Google Calendar events. Click a task for details; drag it to another day to move it. Click a bucket in the legend to hide it.
 - **Plan with AI / Sync with Claude**: send a thought plus your whole plan to Claude Haiku in-app (API key), or copy it into any Claude chat (your subscription, with research and connectors). Paste the reply back, review the proposed changes, apply. Format: see `src/lib/bridge.ts`.
 - Saved in your browser. Settings → Backup to export/import a JSON copy.
 
@@ -51,6 +52,7 @@ npm run build    # production build into dist/
 | `src/components/plan/` | Plan pages: `Today`, `Buckets`, shared task/date/priority parts |
 | `src/lib/plan.ts` | Buckets/goals/milestones/tasks data model and storage |
 | `src/lib/breakdown.ts` | AI goal breakdown |
+| `src/components/plan/PlanCalendar.tsx` | Week/month calendar and the task detail sheet |
 | `src/lib/schedule.ts` | The scheduler: do-dates, urgency, goal projections |
 | `src/lib/bridge.ts` | Claude bridge: prompt builder and ```jarvis change parser |
 | `src/components/` | Assist pages: `Chat`, `Inbox`, `Calendar`, `SettingsPage` |

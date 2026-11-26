@@ -61,7 +61,10 @@ export interface PlanData {
   tasks: Task[];
 }
 
-export const COLORS = ['#2f6f5e', '#3f6cc4', '#b0562f', '#8a4fb5', '#b8892a', '#c2416b', '#4b7f2a', '#5b6472'];
+// Bucket colors, tuned to read on the deep-blue UI. Order matches the old
+// palette so existing buckets map across one-to-one.
+export const COLORS = ['#3dbb8a', '#5b9dff', '#e58a52', '#b385f0', '#e3b94f', '#e8698a', '#4cc7d9', '#9aa9ba'];
+const OLD_COLORS = ['#2f6f5e', '#3f6cc4', '#b0562f', '#8a4fb5', '#b8892a', '#c2416b', '#4b7f2a', '#5b6472'];
 
 const KEY = 'jarvis-plan';
 const EMPTY: PlanData = { version: 2, prefs: { dailyCapacity: 4 }, buckets: [], goals: [], milestones: [], tasks: [] };
@@ -74,6 +77,10 @@ function migrate(raw: Partial<PlanData> & { version?: number }): PlanData {
     data.tasks = (data.tasks ?? []).map((t) => ({ ...t, doDate: t.doDate ?? '', priority: (t.priority === 2 ? 0 : t.priority) as Priority }));
   }
   data.tasks = data.tasks.map((t) => ({ ...t, doDate: t.doDate ?? '' }));
+  data.buckets = data.buckets.map((b) => {
+    const i = OLD_COLORS.indexOf(b.color);
+    return i >= 0 ? { ...b, color: COLORS[i] } : b;
+  });
   data.version = 2;
   return data;
 }
