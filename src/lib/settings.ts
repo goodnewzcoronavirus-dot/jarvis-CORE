@@ -22,7 +22,7 @@ export const LOCAL_MODELS: { id: string; label: string; note: string }[] = [
 ];
 
 const DEFAULTS: Settings = {
-  provider: 'local',
+  provider: 'anthropic',
   localModel: 'Qwen3.5-2B-q4f16_1-MLC',
   anthropicKey: '',
   anthropicModel: 'claude-haiku-5-5',

@@ -7,9 +7,10 @@ A personal productivity copilot that runs entirely in your browser. There's no s
 ## What it does now
 
 **Plan** (the organizing side)
-- **Buckets** for each area of life. Inside each: **goals** (with a target date and a "why"), **milestones**, and **tasks** with due dates and priority. Tasks can also sit directly in a bucket.
-- **Today**: every open task across all buckets, grouped into Overdue / Today / Next 7 days / Later / No date, plus milestones and goals due in the next 2 weeks. Filter by bucket and quick-add.
-- **✨ Break it down with AI**: suggests milestones and tasks for a goal. You pick which ones to keep.
+- **Buckets > Goals > Milestones > Tasks.** Goals have a target date and a "why". Tasks can also sit directly in a bucket.
+- **Jarvis schedules for you.** Every open task gets a do-date: earliest deadline first, inherited from its milestone or goal, with a daily limit (default 4/day). Steps inside a goal or milestone keep the order you added them. Set a deadline or pin a day from a task's ⋯ menu only when you need to.
+- **Today**: a command line (Enter adds a task, each pasted line becomes one), today's run, a 7-day load strip, and **Telemetry**: each goal's % done, milestones, projected finish and whether it lands before its target.
+- **Plan with AI / Sync with Claude**: send a thought plus your whole plan to Claude Haiku in-app (API key), or copy it into any Claude chat (your subscription, with research and connectors). Paste the reply back, review the proposed changes, apply. Format: see `src/lib/bridge.ts`.
 - Saved in your browser. Settings → Backup to export/import a JSON copy.
 
 **Assist** (the getting-things-done side)
@@ -50,6 +51,8 @@ npm run build    # production build into dist/
 | `src/components/plan/` | Plan pages: `Today`, `Buckets`, shared task/date/priority parts |
 | `src/lib/plan.ts` | Buckets/goals/milestones/tasks data model and storage |
 | `src/lib/breakdown.ts` | AI goal breakdown |
+| `src/lib/schedule.ts` | The scheduler: do-dates, urgency, goal projections |
+| `src/lib/bridge.ts` | Claude bridge: prompt builder and ```jarvis change parser |
 | `src/components/` | Assist pages: `Chat`, `Inbox`, `Calendar`, `SettingsPage` |
 | `src/lib/llm.ts` | One streaming chat function over on-device / Claude / OpenAI-compatible |
 | `src/lib/google.ts` | Google sign-in and Gmail / Calendar / Tasks fetchers |

@@ -30,7 +30,8 @@ export interface Milestone {
   createdAt: number;
 }
 
-export type Priority = 1 | 2 | 3; // 1 = high
+// 0 = auto (Jarvis decides from deadlines), 1 = high, 2 = medium, 3 = low
+export type Priority = 0 | 1 | 2 | 3;
 
 export interface Task {
   id: string;
@@ -38,7 +39,8 @@ export interface Task {
   goalId: string; // '' if none
   milestoneId: string; // '' if none
   title: string;
-  due: string;
+  due: string; // hard deadline, YYYY-MM-DD or ''
+  doDate: string; // pinned day to work on it; '' lets Jarvis schedule it
   priority: Priority;
   notes: string;
   done: boolean;
@@ -46,8 +48,13 @@ export interface Task {
   createdAt: number;
 }
 
+export interface Prefs {
+  dailyCapacity: number; // how many tasks Jarvis plans per day
+}
+
 export interface PlanData {
-  version: 1;
+  version: 2;
+  prefs: Prefs;
   buckets: Bucket[];
   goals: Goal[];
   milestones: Milestone[];
@@ -57,12 +64,24 @@ export interface PlanData {
 export const COLORS = ['#2f6f5e', '#3f6cc4', '#b0562f', '#8a4fb5', '#b8892a', '#c2416b', '#4b7f2a', '#5b6472'];
 
 const KEY = 'jarvis-plan';
-const EMPTY: PlanData = { version: 1, buckets: [], goals: [], milestones: [], tasks: [] };
+const EMPTY: PlanData = { version: 2, prefs: { dailyCapacity: 4 }, buckets: [], goals: [], milestones: [], tasks: [] };
+
+// Upgrade older saves. v1 defaulted every task to "medium", which really meant
+// "no opinion", so those become auto.
+function migrate(raw: Partial<PlanData> & { version?: number }): PlanData {
+  const data: PlanData = { ...EMPTY, ...raw, prefs: { ...EMPTY.prefs, ...(raw.prefs ?? {}) } } as PlanData;
+  if (!raw.version || raw.version < 2) {
+    data.tasks = (data.tasks ?? []).map((t) => ({ ...t, doDate: t.doDate ?? '', priority: (t.priority === 2 ? 0 : t.priority) as Priority }));
+  }
+  data.tasks = data.tasks.map((t) => ({ ...t, doDate: t.doDate ?? '' }));
+  data.version = 2;
+  return data;
+}
 
 function load(): PlanData {
   try {
     const raw = localStorage.getItem(KEY);
-    if (raw) return { ...EMPTY, ...JSON.parse(raw) };
+    if (raw) return migrate(JSON.parse(raw));
   } catch {
     /* fall through */
   }
@@ -175,7 +194,8 @@ export function addTask(t: Partial<Task> & { bucketId: string; title: string }):
     goalId: '',
     milestoneId: '',
     due: '',
-    priority: 2,
+    doDate: '',
+    priority: 0,
     notes: '',
     done: false,
     doneAt: 0,
@@ -216,8 +236,23 @@ export function importPlan(json: string) {
   if (!data || !Array.isArray(data.buckets) || !Array.isArray(data.tasks)) {
     throw new Error("That file doesn't look like a Jarvis backup.");
   }
-  commit({ ...EMPTY, ...data });
+  commit(migrate(data));
 }
+
+export function setPrefs(patch: Partial<Prefs>) {
+  commit({ ...state, prefs: { ...state.prefs, ...patch } });
+}
+
+// Direct access for non-React code (the Claude bridge).
+export function getPlan(): PlanData {
+  return state;
+}
+
+export function commitPlan(next: PlanData) {
+  commit(next);
+}
+
+export { uid };
 
 // ---------- Date helpers ----------
 export function todayStr(offsetDays = 0): string {

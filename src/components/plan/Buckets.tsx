@@ -21,13 +21,18 @@ import {
 } from '../../lib/plan';
 import type { Settings } from '../../lib/settings';
 import { suggestBreakdown, type SuggestedMilestone } from '../../lib/breakdown';
-import { BucketDot, DateInput, InlineEdit, ProgressBar, QuickAdd, TaskRow } from './parts';
+import { BucketDot, DateChip, shortDate, InlineEdit, ProgressBar, QuickAdd, TaskRow } from './parts';
+import { useSchedule, type Schedule } from '../../lib/schedule';
 
 const STARTERS = ['School', 'Work', 'Personal', 'Health'];
 
-export function Buckets({ settings }: { settings: Settings }) {
+export function Buckets({ settings, openId = '', onOpened }: { settings: Settings; openId?: string; onOpened?: () => void }) {
   const plan = usePlan();
-  const [selected, setSelected] = useState<string>('');
+  const [selected, setSelected] = useState<string>(openId);
+  if (openId && openId !== selected) {
+    setSelected(openId);
+    onOpened?.();
+  }
   const [newName, setNewName] = useState('');
   const bucket = plan.buckets.find((b) => b.id === selected);
   const taken = new Set(plan.buckets.map((b) => b.name.toLowerCase()));
@@ -57,7 +62,7 @@ export function Buckets({ settings }: { settings: Settings }) {
           const p = progress(tasks);
           const overdue = tasks.filter((t) => !t.done && t.due && t.due < todayStr()).length;
           return (
-            <button key={b.id} className="bucket-card" onClick={() => setSelected(b.id)} style={{ borderTopColor: b.color }}>
+            <button key={b.id} className="bucket-card" onClick={() => setSelected(b.id)} style={{ '--b': b.color } as React.CSSProperties}>
               <div className="bucket-name">{b.name}</div>
               <div className="muted">
                 {goals.length} active goal{goals.length === 1 ? '' : 's'} · {p.total - p.done} open task{p.total - p.done === 1 ? '' : 's'}
@@ -94,6 +99,7 @@ export function Buckets({ settings }: { settings: Settings }) {
 
 function BucketDetail({ bucket, settings, onBack }: { bucket: Bucket; settings: Settings; onBack: () => void }) {
   const plan = usePlan();
+  const schedule = useSchedule(plan);
   const [goalTitle, setGoalTitle] = useState('');
   const [showDoneGoals, setShowDoneGoals] = useState(false);
   const goals = plan.goals.filter((g) => g.bucketId === bucket.id);
@@ -146,7 +152,7 @@ function BucketDetail({ bucket, settings, onBack }: { bucket: Bucket; settings: 
         <h2>Goals</h2>
         {activeGoals.length === 0 && <p className="muted">No goals yet. What big outcome do you want in {bucket.name}?</p>}
         {activeGoals.map((g) => (
-          <GoalCard key={g.id} goal={g} bucket={bucket} settings={settings} />
+          <GoalCard key={g.id} goal={g} bucket={bucket} settings={settings} schedule={schedule} />
         ))}
         <div className="quick-add">
           <span className="plus">◎</span>
@@ -165,7 +171,7 @@ function BucketDetail({ bucket, settings, onBack }: { bucket: Bucket; settings: 
             <button className="link" onClick={() => setShowDoneGoals(!showDoneGoals)}>
               {showDoneGoals ? '▾' : '▸'} Completed goals ({doneGoals.length})
             </button>
-            {showDoneGoals && doneGoals.map((g) => <GoalCard key={g.id} goal={g} bucket={bucket} settings={settings} />)}
+            {showDoneGoals && doneGoals.map((g) => <GoalCard key={g.id} goal={g} bucket={bucket} settings={settings} schedule={schedule} />)}
           </>
         )}
       </section>
@@ -175,7 +181,7 @@ function BucketDetail({ bucket, settings, onBack }: { bucket: Bucket; settings: 
         <p className="muted">Things in {bucket.name} that aren’t part of a goal.</p>
         <div className="task-list">
           {sortOpenFirst(loose).map((t) => (
-            <TaskRow key={t.id} task={t} />
+            <TaskRow key={t.id} task={t} planned={schedule.tasks.get(t.id)} />
           ))}
         </div>
         <QuickAdd bucketId={bucket.id} />
@@ -184,7 +190,7 @@ function BucketDetail({ bucket, settings, onBack }: { bucket: Bucket; settings: 
   );
 }
 
-function GoalCard({ goal, bucket, settings }: { goal: Goal; bucket: Bucket; settings: Settings }) {
+function GoalCard({ goal, bucket, settings, schedule }: { goal: Goal; bucket: Bucket; settings: Settings; schedule: Schedule }) {
   const plan = usePlan();
   const [open, setOpen] = useState(!goal.done);
   const [msTitle, setMsTitle] = useState('');
@@ -192,7 +198,7 @@ function GoalCard({ goal, bucket, settings }: { goal: Goal; bucket: Bucket; sett
   const milestones = plan.milestones.filter((m) => m.goalId === goal.id).sort(byDueThenCreated);
   const goalTasks = plan.tasks.filter((t) => t.goalId === goal.id);
   const direct = goalTasks.filter((t) => !t.milestoneId);
-  const p = progress(goalTasks);
+  const p = schedule.goals.get(goal.id) ?? progress(goalTasks);
 
   const createMs = () => {
     const t = msTitle.trim();
@@ -229,7 +235,7 @@ function GoalCard({ goal, bucket, settings }: { goal: Goal; bucket: Bucket; sett
           title="Mark goal complete"
         />
         <InlineEdit value={goal.title} onSave={(v) => updateGoal(goal.id, { title: v })} className="goal-title" />
-        <DateInput value={goal.targetDate} onChange={(v) => updateGoal(goal.id, { targetDate: v })} title="Target date" />
+        <DateChip value={goal.targetDate} onChange={(v) => updateGoal(goal.id, { targetDate: v })} title="Target date" empty="Set target" />
         <span className="muted nowrap">
           {p.done}/{p.total}
         </span>
@@ -247,13 +253,13 @@ function GoalCard({ goal, bucket, settings }: { goal: Goal; bucket: Bucket; sett
           />
 
           {milestones.map((m) => (
-            <MilestoneBlock key={m.id} ms={m} bucketId={bucket.id} />
+            <MilestoneBlock key={m.id} ms={m} bucketId={bucket.id} schedule={schedule} />
           ))}
 
           {direct.length > 0 && (
             <div className="task-list">
               {sortOpenFirst(direct).map((t) => (
-                <TaskRow key={t.id} task={t} />
+                <TaskRow key={t.id} task={t} planned={schedule.tasks.get(t.id)} />
               ))}
             </div>
           )}
@@ -294,7 +300,7 @@ function GoalCard({ goal, bucket, settings }: { goal: Goal; bucket: Bucket; sett
   );
 }
 
-function MilestoneBlock({ ms, bucketId }: { ms: Milestone; bucketId: string }) {
+function MilestoneBlock({ ms, bucketId, schedule }: { ms: Milestone; bucketId: string; schedule: Schedule }) {
   const plan = usePlan();
   const [open, setOpen] = useState(!ms.done);
   const tasks = plan.tasks.filter((t) => t.milestoneId === ms.id);
@@ -314,7 +320,12 @@ function MilestoneBlock({ ms, bucketId }: { ms: Milestone; bucketId: string }) {
         />
         <span className="ms-icon">◆</span>
         <InlineEdit value={ms.title} onSave={(v) => updateMilestone(ms.id, { title: v })} className="ms-title" />
-        <DateInput value={ms.dueDate} onChange={(v) => updateMilestone(ms.id, { dueDate: v })} title="Milestone date" />
+        <DateChip
+          value={ms.dueDate}
+          onChange={(v) => updateMilestone(ms.id, { dueDate: v })}
+          title={ms.dueDate ? 'Milestone date' : 'Set a date (Jarvis estimates one from the goal target)'}
+          empty={schedule.milestoneDates.get(ms.id) ? `~${shortDate(schedule.milestoneDates.get(ms.id)!)}` : 'Set date'}
+        />
         <span className="muted nowrap">
           {p.done}/{p.total}
         </span>
@@ -332,7 +343,7 @@ function MilestoneBlock({ ms, bucketId }: { ms: Milestone; bucketId: string }) {
         <div className="ms-body">
           <div className="task-list">
             {sortOpenFirst(tasks).map((t) => (
-              <TaskRow key={t.id} task={t} />
+              <TaskRow key={t.id} task={t} planned={schedule.tasks.get(t.id)} />
             ))}
           </div>
           <QuickAdd bucketId={bucketId} milestoneId={ms.id} placeholder="Add a task to this milestone…" />
@@ -416,12 +427,7 @@ function byDueThenCreated(a: { dueDate: string; createdAt: number }, b: { dueDat
   return (a.dueDate || '9999').localeCompare(b.dueDate || '9999') || a.createdAt - b.createdAt;
 }
 
-function sortOpenFirst<T extends { done: boolean; priority: number; due: string; createdAt: number }>(list: T[]): T[] {
-  return [...list].sort(
-    (a, b) =>
-      Number(a.done) - Number(b.done) ||
-      a.priority - b.priority ||
-      (a.due || '9999').localeCompare(b.due || '9999') ||
-      a.createdAt - b.createdAt,
-  );
+// Open first, then in the order they were written (that's the sequence of steps).
+function sortOpenFirst<T extends { done: boolean; createdAt: number }>(list: T[]): T[] {
+  return [...list].sort((a, b) => Number(a.done) - Number(b.done) || a.createdAt - b.createdAt);
 }

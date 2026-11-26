@@ -1,144 +1,205 @@
-import { useState } from 'react';
-import { prettyDate, todayStr, usePlan, type Task } from '../../lib/plan';
-import { BucketDot, QuickAdd, TaskRow } from './parts';
+import { useMemo, useRef, useState } from 'react';
+import { addTask, setPrefs, todayStr, usePlan } from '../../lib/plan';
+import { addDays, useSchedule } from '../../lib/schedule';
+import { shortDate, TaskRow } from './parts';
+import { Telemetry } from './Telemetry';
 
-// Sort: priority first, then due date, then oldest first.
-const byPriority = (a: Task, b: Task) =>
-  a.priority - b.priority || (a.due || '9999').localeCompare(b.due || '9999') || a.createdAt - b.createdAt;
-
-export function Today({ onOpenBuckets }: { onOpenBuckets: () => void }) {
+export function Today({
+  onOpenBuckets,
+  onOpenBucket,
+  onThink,
+}: {
+  onOpenBuckets: () => void;
+  onOpenBucket: (id: string) => void;
+  onThink: (text: string, mode: 'think' | 'claude') => void;
+}) {
   const plan = usePlan();
-  const [filter, setFilter] = useState(''); // bucket id or ''
-  const [showDone, setShowDone] = useState(false);
+  const schedule = useSchedule(plan);
   const today = todayStr();
-  const week = todayStr(7);
+  const [text, setText] = useState('');
+  const [bucketId, setBucketId] = useState('');
+  const [goalId, setGoalId] = useState('');
+  const [day, setDay] = useState(addDays(today, 1));
+  const [showDone, setShowDone] = useState(false);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  const bucket = bucketId || plan.buckets[0]?.id || '';
+  const goalsInBucket = plan.goals.filter((g) => g.bucketId === bucket && !g.done);
+
+  const doneToday = useMemo(
+    () => plan.tasks.filter((t) => t.done && t.doneAt && new Date(t.doneAt).toDateString() === new Date().toDateString()),
+    [plan.tasks],
+  );
+  const run = schedule.byDay.get(today) ?? [];
+  const totalToday = run.length + doneToday.length;
+  const pctToday = totalToday ? Math.round((doneToday.length / totalToday) * 100) : 0;
+  const week = Array.from({ length: 7 }, (_, i) => addDays(today, i + 1));
+  const maxLoad = Math.max(plan.prefs.dailyCapacity, ...week.map((d) => schedule.byDay.get(d)?.length ?? 0));
+  const later = [...schedule.byDay.entries()].filter(([d]) => d > week[6]).reduce((n, [, l]) => n + l.length, 0);
+
+  const add = () => {
+    const lines = text
+      .split('\n')
+      .map((l) => l.replace(/^[-*•\d.)\s]+/, '').trim())
+      .filter(Boolean);
+    if (!lines.length || !bucket) return;
+    lines.forEach((title) => addTask({ bucketId: bucket, goalId: goalsInBucket.some((g) => g.id === goalId) ? goalId : '', title }));
+    setText('');
+    inputRef.current?.focus();
+  };
 
   if (plan.buckets.length === 0) {
     return (
-      <div className="page">
-        <header className="page-head">
-          <h1>Today</h1>
-        </header>
+      <div className="page today">
         <div className="empty">
-          <h2>Start by making your buckets</h2>
-          <p>Buckets are the big areas of your life, like school, each project, health, personal. Goals and tasks go inside them.</p>
+          <span className="label">Jarvis</span>
+          <h2>Set up your buckets</h2>
+          <p>Buckets are the big areas of your life. Goals and tasks live inside them, and Jarvis schedules the rest.</p>
           <button className="btn" onClick={onOpenBuckets}>
-            Set up buckets
+            Create buckets
           </button>
         </div>
       </div>
     );
   }
 
-  const open = plan.tasks.filter((t) => !t.done && (!filter || t.bucketId === filter));
-  const groups: { key: string; label: string; tasks: Task[]; tone?: string }[] = [
-    { key: 'overdue', label: 'Overdue', tasks: open.filter((t) => t.due && t.due < today), tone: 'danger' },
-    { key: 'today', label: 'Today', tasks: open.filter((t) => t.due === today) },
-    { key: 'week', label: 'Next 7 days', tasks: open.filter((t) => t.due > today && t.due <= week) },
-    { key: 'later', label: 'Later', tasks: open.filter((t) => t.due > week) },
-    { key: 'nodate', label: 'No date', tasks: open.filter((t) => !t.due) },
-  ];
-  for (const g of groups) {
-    g.tasks.sort(g.key === 'week' || g.key === 'later' ? (a, b) => a.due.localeCompare(b.due) || a.priority - b.priority : byPriority);
-  }
-
-  const doneToday = plan.tasks.filter((t) => t.done && t.doneAt && todayStr() === dayOf(t.doneAt) && (!filter || t.bucketId === filter));
-
-  // Milestones and goals with deadlines in the next 14 days.
-  const horizon = todayStr(14);
-  const goalBucket = (goalId: string) => plan.goals.find((g) => g.id === goalId)?.bucketId ?? '';
-  const deadlines = [
-    ...plan.milestones
-      .filter((m) => !m.done && m.dueDate && m.dueDate <= horizon)
-      .map((m) => ({ id: m.id, title: m.title, date: m.dueDate, kind: 'Milestone', bucketId: goalBucket(m.goalId) })),
-    ...plan.goals
-      .filter((g) => !g.done && g.targetDate && g.targetDate <= horizon)
-      .map((g) => ({ id: g.id, title: g.title, date: g.targetDate, kind: 'Goal', bucketId: g.bucketId })),
-  ]
-    .filter((d) => !filter || d.bucketId === filter)
-    .sort((a, b) => a.date.localeCompare(b.date));
-
+  const dateLabel = new Date();
   return (
-    <div className="page">
-      <header className="page-head">
-        <h1>Today</h1>
-        <span className="pill">{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</span>
-      </header>
-
-      <div className="filters">
-        <button className={`chip ${!filter ? 'on' : ''}`} onClick={() => setFilter('')}>
-          All
-        </button>
-        {plan.buckets.map((b) => (
-          <button key={b.id} className={`chip ${filter === b.id ? 'on' : ''}`} onClick={() => setFilter(filter === b.id ? '' : b.id)}>
-            <BucketDot color={b.color} />
-            {b.name}
-          </button>
-        ))}
-      </div>
-
-      <QuickAdd bucketId={filter || undefined} defaultDue={today} placeholder="Add a task for today… (Enter)" />
-
-      {deadlines.length > 0 && (
-        <section className="deadlines">
-          <h3>Coming up (next 2 weeks)</h3>
-          <div className="deadline-list">
-            {deadlines.map((d) => {
-              const b = plan.buckets.find((x) => x.id === d.bucketId);
-              return (
-                <div key={d.id} className={`deadline ${d.date < today ? 'overdue' : ''}`}>
-                  <span className="deadline-date">{prettyDate(d.date)}</span>
-                  <span className="deadline-title">
-                    {b && <BucketDot color={b.color} />}
-                    {d.title}
-                  </span>
-                  <span className="muted">{d.kind}</span>
+    <div className="page today">
+      <div className="today-grid">
+        <div className="today-main">
+          <header className="today-head">
+            <div>
+              <span className="label">{dateLabel.toLocaleDateString(undefined, { weekday: 'long' })}</span>
+              <h1 className="display">{dateLabel.toLocaleDateString(undefined, { month: 'long', day: 'numeric' })}</h1>
+            </div>
+            <div className="run-gauge" title="Today's tasks done">
+              <svg viewBox="0 0 44 44" aria-hidden="true">
+                <circle cx="22" cy="22" r="19" className="gauge-bg" />
+                <circle cx="22" cy="22" r="19" className="gauge-fill" strokeDasharray={`${(pctToday / 100) * 119.4} 119.4`} />
+              </svg>
+              <div>
+                <div className="gauge-num">
+                  {doneToday.length}
+                  <small>/{totalToday}</small>
                 </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
-
-      {groups.map(
-        (g) =>
-          g.tasks.length > 0 && (
-            <section key={g.key} className="task-group">
-              <h3 className={g.tone}>
-                {g.label} <span className="count">{g.tasks.length}</span>
-              </h3>
-              <div className="task-list">
-                {g.tasks.map((t) => (
-                  <TaskRow key={t.id} task={t} showContext />
-                ))}
+                <span className="label">today’s run</span>
               </div>
-            </section>
-          ),
-      )}
+            </div>
+          </header>
 
-      {open.length === 0 && <p className="muted center">Nothing open{filter ? ' in this bucket' : ''}. Add a task above or plan goals in Buckets.</p>}
+          <div className="command">
+            <textarea
+              ref={inputRef}
+              rows={1}
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  add();
+                }
+              }}
+              placeholder="Add a task, or tell Jarvis what’s on your mind…"
+              aria-label="Command"
+            />
+            <div className="command-bar">
+              <select value={bucket} onChange={(e) => { setBucketId(e.target.value); setGoalId(''); }} aria-label="Bucket">
+                {plan.buckets.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+              <select value={goalId} onChange={(e) => setGoalId(e.target.value)} aria-label="Goal">
+                <option value="">No goal</option>
+                {goalsInBucket.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.title}
+                  </option>
+                ))}
+              </select>
+              <span className="spacer" />
+              <button className="btn ghost" onClick={() => onThink(text, 'think')} title="Let AI turn this into a plan">
+                ✦ Plan with AI
+              </button>
+              <button className="btn" onClick={add} disabled={!text.trim()}>
+                Add
+              </button>
+            </div>
+          </div>
 
-      {doneToday.length > 0 && (
-        <section className="task-group">
-          <h3>
-            <button className="link" onClick={() => setShowDone(!showDone)}>
-              {showDone ? '▾' : '▸'} Done today <span className="count">{doneToday.length}</span>
-            </button>
-          </h3>
-          {showDone && (
+          <section className="run">
+            <div className="section-head">
+              <span className="label">Today’s run</span>
+              <span className="mono muted">
+                {run.length} open · {plan.prefs.dailyCapacity}/day
+              </span>
+            </div>
+            {run.length === 0 && <p className="muted quiet">Nothing scheduled today. Add a task above, or pull one forward from the week.</p>}
             <div className="task-list">
-              {doneToday.map((t) => (
-                <TaskRow key={t.id} task={t} showContext />
+              {run.map((t) => (
+                <TaskRow key={t.id} task={t} planned={schedule.tasks.get(t.id)} showContext showDay={false} />
               ))}
             </div>
-          )}
-        </section>
-      )}
+            {doneToday.length > 0 && (
+              <>
+                <button className="link small" onClick={() => setShowDone(!showDone)}>
+                  {showDone ? '▾' : '▸'} {doneToday.length} done today
+                </button>
+                {showDone && (
+                  <div className="task-list">
+                    {doneToday.map((t) => (
+                      <TaskRow key={t.id} task={t} showContext showDay={false} />
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </section>
+
+          <section className="week">
+            <div className="section-head">
+              <span className="label">Next 7 days</span>
+              <span className="mono muted">{later > 0 ? `+${later} later` : ''}</span>
+            </div>
+            <div className="week-strip" role="tablist">
+              {week.map((d) => {
+                const n = schedule.byDay.get(d)?.length ?? 0;
+                const hasLate = (schedule.byDay.get(d) ?? []).some((t) => schedule.tasks.get(t.id)?.late);
+                return (
+                  <button key={d} role="tab" aria-selected={day === d} className={`week-day ${day === d ? 'on' : ''}`} onClick={() => setDay(d)}>
+                    <span className="wd">{new Date(d + 'T00:00').toLocaleDateString(undefined, { weekday: 'short' })}</span>
+                    <span className="dn">{new Date(d + 'T00:00').getDate()}</span>
+                    <span className="load">
+                      <span className={hasLate ? 'late' : ''} style={{ height: `${(n / maxLoad) * 100}%` }} />
+                    </span>
+                    <span className="cnt mono">{n || '·'}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="task-list">
+              {(schedule.byDay.get(day) ?? []).map((t) => (
+                <TaskRow key={t.id} task={t} planned={schedule.tasks.get(t.id)} showContext showDay={false} />
+              ))}
+              {(schedule.byDay.get(day) ?? []).length === 0 && <p className="muted quiet">Free day ({shortDate(day)}).</p>}
+            </div>
+            <div className="capacity mono">
+              <span>Tasks per day</span>
+              <button className="icon-btn" onClick={() => setPrefs({ dailyCapacity: Math.max(1, plan.prefs.dailyCapacity - 1) })} aria-label="Fewer per day">
+                −
+              </button>
+              <strong>{plan.prefs.dailyCapacity}</strong>
+              <button className="icon-btn" onClick={() => setPrefs({ dailyCapacity: Math.min(15, plan.prefs.dailyCapacity + 1) })} aria-label="More per day">
+                +
+              </button>
+            </div>
+          </section>
+        </div>
+
+        <Telemetry schedule={schedule} onOpenBucket={onOpenBucket} />
+      </div>
     </div>
   );
-}
-
-function dayOf(ms: number): string {
-  const d = new Date(ms);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
