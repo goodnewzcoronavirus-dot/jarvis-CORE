@@ -49,7 +49,7 @@ Connector tools: `get_overview`, `get_schedule`, `search_tasks`, `get_task`, `ad
 
 1. **Make a token.** In Jarvis → Settings → Jarvis Cloud, click **Generate**. It's copied to your clipboard. Paste it somewhere safe for the next steps. It's the password to your plan.
 2. **Deploy the Worker.** Create a free account at [Cloudflare](https://dash.cloudflare.com/sign-up). Then go to **Workers & Pages → Create → Import a repository**, connect GitHub, and pick this repo. Set:
-   - **Project name:** `jarvis-cloud`
+   - **Project name:** `jarvis-core` (must match `name` in `worker/wrangler.toml`)
    - **Root directory:** `worker`
    - **Deploy command:** `npx wrangler deploy` (the default)
 

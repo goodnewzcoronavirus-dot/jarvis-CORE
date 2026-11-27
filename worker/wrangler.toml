@@ -1,5 +1,5 @@
 # Jarvis Cloud: stores your plan and exposes it to the Jarvis app and to Claude (MCP).
-name = "jarvis-cloud"
+name = "jarvis-core"
 main = "src/index.ts"
 compatibility_date = "2026-11-01"
 
