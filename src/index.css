@@ -646,3 +646,19 @@ code { background: var(--raised); padding: 1px 6px; border-radius: 4px; font-siz
   .modal-scrim { padding: 12px 8px; }
   .modal { max-height: 92vh; }
 }
+
+/* ---------- Jarvis Cloud ---------- */
+.sync-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; background: var(--faint); }
+.sync-dot.s-ok { background: var(--accent); }
+.sync-dot.s-syncing { background: var(--now); animation: pulse 1s ease-in-out infinite; }
+.sync-dot.s-offline { background: #e3b94f; }
+.sync-dot.s-error { background: var(--danger); }
+@keyframes pulse { 50% { opacity: 0.35; } }
+.cloud-status { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 14px; }
+.copy-row { display: flex; gap: 8px; }
+.copy-row input { flex: 1; min-width: 0; font-family: var(--f-mono); font-size: 12.5px; }
+.steps-list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--muted); line-height: 1.55; }
+.steps-list strong { color: var(--ink); font-weight: 500; }
+.choose { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+.choose p { margin: 0; font-size: 14px; }
+.nav-item.cloud > .sync-dot { display: inline-block; }

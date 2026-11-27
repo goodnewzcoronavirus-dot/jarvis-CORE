@@ -3,88 +3,11 @@
 // Everything is stored in this browser's localStorage. Use Settings → Backup
 // to export/import a JSON copy.
 import { useSyncExternalStore } from 'react';
+import { COLORS, EMPTY, migrate, uid, todayStr, type Bucket, type Goal, type Milestone, type PlanData, type Prefs, type Task } from './core';
 
-export interface Bucket {
-  id: string;
-  name: string;
-  color: string;
-  createdAt: number;
-}
-
-export interface Goal {
-  id: string;
-  bucketId: string;
-  title: string;
-  why: string;
-  targetDate: string; // YYYY-MM-DD or ''
-  done: boolean;
-  createdAt: number;
-}
-
-export interface Milestone {
-  id: string;
-  goalId: string;
-  title: string;
-  dueDate: string;
-  done: boolean;
-  createdAt: number;
-}
-
-// 0 = auto (Jarvis decides from deadlines), 1 = high, 2 = medium, 3 = low
-export type Priority = 0 | 1 | 2 | 3;
-
-export interface Task {
-  id: string;
-  bucketId: string;
-  goalId: string; // '' if none
-  milestoneId: string; // '' if none
-  title: string;
-  due: string; // hard deadline, YYYY-MM-DD or ''
-  doDate: string; // pinned day to work on it; '' lets Jarvis schedule it
-  priority: Priority;
-  notes: string;
-  done: boolean;
-  doneAt: number;
-  createdAt: number;
-}
-
-export interface Prefs {
-  dailyCapacity: number; // how many tasks Jarvis plans per day
-}
-
-export interface PlanData {
-  version: 2;
-  prefs: Prefs;
-  buckets: Bucket[];
-  goals: Goal[];
-  milestones: Milestone[];
-  tasks: Task[];
-}
-
-// Bucket colors, tuned to read on the deep-blue UI. Order matches the old
-// palette so existing buckets map across one-to-one.
-export const COLORS = ['#3dbb8a', '#5b9dff', '#e58a52', '#b385f0', '#e3b94f', '#e8698a', '#4cc7d9', '#9aa9ba'];
-const OLD_COLORS = ['#2f6f5e', '#3f6cc4', '#b0562f', '#8a4fb5', '#b8892a', '#c2416b', '#4b7f2a', '#5b6472'];
+export * from './core';
 
 const KEY = 'jarvis-plan';
-const EMPTY: PlanData = { version: 2, prefs: { dailyCapacity: 4 }, buckets: [], goals: [], milestones: [], tasks: [] };
-
-// Upgrade older saves. v1 defaulted every task to "medium", which really meant
-// "no opinion", so those become auto.
-function migrate(raw: Partial<PlanData> & { version?: number }): PlanData {
-  const data: PlanData = { ...EMPTY, ...raw, prefs: { ...EMPTY.prefs, ...(raw.prefs ?? {}) } } as PlanData;
-  if (!raw.version || raw.version < 2) {
-    data.tasks = (data.tasks ?? []).map((t) => ({ ...t, doDate: t.doDate ?? '', priority: (t.priority === 2 ? 0 : t.priority) as Priority }));
-  }
-  data.tasks = data.tasks.map((t) => ({ ...t, doDate: t.doDate ?? '' }));
-  data.buckets = data.buckets.map((b) => {
-    const i = OLD_COLORS.indexOf(b.color);
-    return i >= 0 ? { ...b, color: COLORS[i] } : b;
-  });
-  data.version = 2;
-  return data;
-}
-
 function load(): PlanData {
   try {
     const raw = localStorage.getItem(KEY);
@@ -98,7 +21,9 @@ function load(): PlanData {
 let state: PlanData = load();
 const listeners = new Set<() => void>();
 
-function commit(next: PlanData) {
+const localCommitListeners = new Set<(prev: PlanData, next: PlanData) => void>();
+
+function store(next: PlanData) {
   state = next;
   try {
     localStorage.setItem(KEY, JSON.stringify(state));
@@ -106,6 +31,24 @@ function commit(next: PlanData) {
     /* storage full or blocked; keep in memory */
   }
   listeners.forEach((l) => l());
+}
+
+// A change made in this app. Jarvis Cloud sync listens to push it.
+function commit(next: PlanData) {
+  const prev = state;
+  store(next);
+  localCommitListeners.forEach((l) => l(prev, next));
+}
+
+export function onLocalCommit(fn: (prev: PlanData, next: PlanData) => void): () => void {
+  localCommitListeners.add(fn);
+  return () => localCommitListeners.delete(fn);
+}
+
+// A change that came from Jarvis Cloud (Claude or another device). Not pushed back.
+export function replaceFromRemote(next: PlanData) {
+  if (JSON.stringify(next) === JSON.stringify(state)) return;
+  store(next);
 }
 
 // Keep tabs in sync if the app is open in two windows.
@@ -128,7 +71,6 @@ export function usePlan(): PlanData {
   );
 }
 
-const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 
 // ---------- Buckets ----------
 export function addBucket(name: string): string {
@@ -259,17 +201,8 @@ export function commitPlan(next: PlanData) {
   commit(next);
 }
 
-export { uid };
 
 // ---------- Date helpers ----------
-export function todayStr(offsetDays = 0): string {
-  const d = new Date();
-  d.setDate(d.getDate() + offsetDays);
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${d.getFullYear()}-${m}-${day}`;
-}
-
 export function prettyDate(s: string): string {
   if (!s) return '';
   if (s === todayStr()) return 'Today';

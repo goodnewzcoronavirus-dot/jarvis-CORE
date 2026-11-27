@@ -10,6 +10,7 @@ import { Buckets } from './components/plan/Buckets';
 import { Bridge } from './components/plan/Bridge';
 import { CalendarHome } from './components/plan/CalendarHome';
 import { Cursor } from './components/Cursor';
+import { useSync } from './lib/sync';
 
 export type Page = 'today' | 'buckets' | 'chat' | 'inbox' | 'calendar' | 'settings';
 
@@ -51,6 +52,7 @@ export default function App() {
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState('');
   const [openBucket, setOpenBucket] = useState('');
+  const cloud = useSync();
   const [bridge, setBridge] = useState<null | { text: string; mode: 'think' | 'claude' }>(null);
 
   const setSettings = (s: Settings) => {
@@ -119,6 +121,11 @@ export default function App() {
             <Icon name="settings" />
             <span>Settings</span>
           </button>
+          {cloud.connected && (
+            <button className="nav-item cloud" onClick={() => setPage('settings')} data-tip={cloud.status === 'ok' ? 'Synced with Jarvis Cloud' : cloud.status === 'syncing' ? 'Syncing…' : cloud.status === 'offline' ? 'Offline' : `Sync problem: ${cloud.lastError}`}>
+              <span className={`sync-dot s-${cloud.status}`} />
+            </button>
+          )}
           <div className="google-status">
             <span className={`dot ${signedIn ? 'on' : ''}`} />
             {signedIn ? (

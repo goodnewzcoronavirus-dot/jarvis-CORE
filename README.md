@@ -36,6 +36,41 @@ Repo → **Settings → Pages → Build and deployment → Source: GitHub Action
 
 Access is read-only. While the Google app is in "Testing" mode, only the test users you add can sign in, and sign-in lasts about an hour before it asks again.
 
+## Jarvis Cloud: the Claude connector
+
+Jarvis Cloud is a tiny server (a free Cloudflare Worker, code in `worker/`) that holds your plan. Two things talk to it:
+
+- **The Jarvis app** syncs to it, so your laptop and phone show the same plan.
+- **Claude** reaches it as a custom connector, so in any chat you can say *"find my Elaina Morris task, draft the email in Gmail and update the task"* and Claude reads and changes your plan directly.
+
+Connector tools: `get_overview`, `get_schedule`, `search_tasks`, `get_task`, `add_tasks`, `update_task`, `complete_task`, `delete_task`, `add_goal`, `update_goal`, `add_milestone`, `update_milestone`, `add_bucket`.
+
+### Set it up (about 10 minutes, all in the browser)
+
+1. **Make a token.** In Jarvis → Settings → Jarvis Cloud, click **Generate**. It's copied to your clipboard. Paste it somewhere safe for the next steps. It's the password to your plan.
+2. **Deploy the Worker.** Create a free account at [Cloudflare](https://dash.cloudflare.com/sign-up). Then go to **Workers & Pages → Create → Import a repository**, connect GitHub, and pick this repo. Set:
+   - **Project name:** `jarvis-cloud`
+   - **Root directory:** `worker`
+   - **Deploy command:** `npx wrangler deploy` (the default)
+
+   Deploy. It prints your URL, like `https://jarvis-cloud.<you>.workers.dev`.
+3. **Add the secret.** In the Worker, go to **Settings → Variables and Secrets → Add**: type **Secret**, name `JARVIS_TOKEN`, value: your token. Save. (Opening the URL then says "Jarvis Cloud is running.")
+4. **Connect the app.** Jarvis → Settings → Jarvis Cloud: paste the Worker URL and the token, then **Connect**. The first time, it uploads this browser's plan. On other devices, connect with the same URL and token.
+5. **Add the connector to Claude.** Copy the **Connector URL** shown in Settings (`https://…workers.dev/mcp/<token>`). In Claude, go to **Settings → Connectors → Add custom connector**, name it `Jarvis`, paste the URL, and leave OAuth empty. Turn it on in a chat from the tools menu.
+
+Every push to `main` redeploys the Worker automatically.
+
+**Security:** the token is in the connector URL, so treat that URL like a password. Anyone with it can read and change your plan. If it leaks, change `JARVIS_TOKEN` in Cloudflare, then reconnect the app and update the connector URL.
+
+### Run it locally
+
+```bash
+cd worker
+npm install
+echo "JARVIS_TOKEN=some-long-random-test-token-123" > .dev.vars
+npx wrangler dev          # http://localhost:8787
+```
+
 ## Develop locally
 
 ```bash
@@ -59,6 +94,9 @@ npm run build    # production build into dist/
 | `src/lib/llm.ts` | One streaming chat function over on-device / Claude / OpenAI-compatible |
 | `src/lib/google.ts` | Google sign-in and Gmail / Calendar / Tasks fetchers |
 | `src/lib/settings.ts` | Settings and the list of on-device models |
+| `worker/` | Jarvis Cloud: Cloudflare Worker with the plan store, sync API and MCP connector |
+| `src/lib/sync.ts` | App ↔ Jarvis Cloud sync |
+| `src/lib/core.ts`, `src/lib/schedule-core.ts` | Pure plan model and scheduler shared by the app and the Worker |
 | `.github/workflows/deploy.yml` | Build and deploy to GitHub Pages |
 
 The original OpenJarvis-based version is on the `openjarvis-base` branch.

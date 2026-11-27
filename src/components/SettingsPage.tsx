@@ -2,6 +2,8 @@ import type { Settings, Provider } from '../lib/settings';
 import { LOCAL_MODELS } from '../lib/settings';
 import { hasWebGPU } from '../lib/llm';
 import { exportPlan, importPlan } from '../lib/plan';
+import { CloudSettings } from './CloudSettings';
+import { useSync } from '../lib/sync';
 
 interface Props {
   settings: Settings;
@@ -11,12 +13,15 @@ interface Props {
 export function SettingsPage({ settings, onChange }: Props) {
   const set = <K extends keyof Settings>(k: K, v: Settings[K]) => onChange({ ...settings, [k]: v });
   const origin = window.location.origin;
+  const cloud = useSync();
 
   return (
     <div className="page settings">
       <header className="page-head">
         <h1>Settings</h1>
       </header>
+
+      <CloudSettings />
 
       <section className="card">
         <h2>Model</h2>
@@ -129,8 +134,9 @@ export function SettingsPage({ settings, onChange }: Props) {
       <section className="card">
         <h2>Backup</h2>
         <p className="muted">
-          Your buckets, goals and tasks are saved in this browser only. Download a backup now and then, and use Import to move them to another
-          device or browser.
+          {cloud.connected
+            ? 'Your plan is stored on your Jarvis Cloud server and cached in this browser. A backup file is still a good idea now and then.'
+            : 'Your buckets, goals and tasks are saved in this browser only. Download a backup now and then, and use Import to move them to another device or browser.'}
         </p>
         <div className="row-actions">
           <button
@@ -171,8 +177,9 @@ export function SettingsPage({ settings, onChange }: Props) {
       <section className="card">
         <h2>Privacy</h2>
         <p className="muted">
-          There’s no server. Settings live in this browser, your Google sign-in lasts about an hour and is kept only in memory, and email and calendar data is
-          fetched directly from Google into this tab.
+          {cloud.connected
+            ? 'Your plan lives on your own Cloudflare Worker, protected by your token; Claude reaches it only through the connector URL. Settings and API keys stay in this browser. Google sign-in lasts about an hour and is kept in memory.'
+            : 'There’s no server. Settings live in this browser, your Google sign-in lasts about an hour and is kept only in memory, and email and calendar data is fetched directly from Google into this tab.'}
         </p>
       </section>
     </div>
