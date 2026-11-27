@@ -3,6 +3,10 @@ name = "jarvis-core"
 main = "src/index.ts"
 compatibility_date = "2026-11-01"
 
+# Give the Worker its public https://jarvis-core.<account>.workers.dev address.
+workers_dev = true
+preview_urls = false
+
 # One Durable Object holds the whole plan, so every read sees the latest write.
 [[durable_objects.bindings]]
 name = "PLAN"
