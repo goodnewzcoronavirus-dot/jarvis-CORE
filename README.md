@@ -47,16 +47,13 @@ Connector tools: `get_overview`, `get_schedule`, `search_tasks`, `get_task`, `ad
 
 ### Set it up (about 10 minutes, all in the browser)
 
-1. **Make a token.** In Jarvis → Settings → Jarvis Cloud, click **Generate**. It's copied to your clipboard. Paste it somewhere safe for the next steps. It's the password to your plan.
-2. **Deploy the Worker.** Create a free account at [Cloudflare](https://dash.cloudflare.com/sign-up). Then go to **Workers & Pages → Create → Import a repository**, connect GitHub, and pick this repo. Set:
-   - **Project name:** `jarvis-core` (must match `name` in `worker/wrangler.toml`)
-   - **Root directory:** `worker`
-   - **Deploy command:** `npx wrangler deploy` (the default)
+One Cloudflare Worker (config: `wrangler.toml` at the repo root) serves the Jarvis app and runs the server behind it (`/api/*`, `/mcp/*`).
 
-   Deploy. It prints your URL, like `https://jarvis-cloud.<you>.workers.dev`.
-3. **Add the secret.** In the Worker, go to **Settings → Variables and Secrets → Add**: type **Secret**, name `JARVIS_TOKEN`, value: your token. Save. (Opening the URL then says "Jarvis Cloud is running.")
-4. **Connect the app.** Jarvis → Settings → Jarvis Cloud: paste the Worker URL and the token, then **Connect**. The first time, it uploads this browser's plan. On other devices, connect with the same URL and token.
-5. **Add the connector to Claude.** Copy the **Connector URL** shown in Settings (`https://…workers.dev/mcp/<token>`). In Claude, go to **Settings → Connectors → Add custom connector**, name it `Jarvis`, paste the URL, and leave OAuth empty. Turn it on in a chat from the tools menu.
+1. **Make a token.** In Jarvis → Settings → Jarvis Cloud, click **Generate**. It's copied to your clipboard. Paste it somewhere safe. It's the password to your plan.
+2. **Deploy.** Create a free account at [Cloudflare](https://dash.cloudflare.com/sign-up), then go to **Workers & Pages → Create → Import a repository** and pick this repo. Use project name `jarvis-core` (it must match `name` in `wrangler.toml`), leave **root directory** empty, use build command `npm run build`, and deploy command `npx wrangler deploy`.
+3. **Add the secret.** In the Worker, go to **Settings → Variables and Secrets → Add**: type **Secret**, name `JARVIS_TOKEN`, value: your token. Check it worked by opening `https://jarvis-core.<you>.workers.dev/api/health`. It should show `{"ok":true,...}`.
+4. **Connect the app.** In the Jarvis that already has your tasks, go to Settings → Jarvis Cloud, paste the Worker URL and token, then **Connect**. That uploads your plan. On any other device or address (including the workers.dev one), connect with the same token and choose **Use the server's plan**.
+5. **Add the connector to Claude.** Copy the **Connector URL** from Settings (`https://…workers.dev/mcp/<token>`). In Claude, go to **Settings → Connectors → Add custom connector**, name it `Jarvis`, paste the URL, and leave OAuth empty.
 
 Every push to `main` redeploys the Worker automatically.
 
@@ -65,10 +62,9 @@ Every push to `main` redeploys the Worker automatically.
 ### Run it locally
 
 ```bash
-cd worker
-npm install
+npm run build                                             # the app, into dist/
 echo "JARVIS_TOKEN=some-long-random-test-token-123" > .dev.vars
-npx wrangler dev          # http://localhost:8787
+npx wrangler dev                                          # app + API + MCP at http://localhost:8787
 ```
 
 ## Develop locally
@@ -94,7 +90,7 @@ npm run build    # production build into dist/
 | `src/lib/llm.ts` | One streaming chat function over on-device / Claude / OpenAI-compatible |
 | `src/lib/google.ts` | Google sign-in and Gmail / Calendar / Tasks fetchers |
 | `src/lib/settings.ts` | Settings and the list of on-device models |
-| `worker/` | Jarvis Cloud: Cloudflare Worker with the plan store, sync API and MCP connector |
+| `wrangler.toml`, `worker/` | Jarvis Cloud: one Cloudflare Worker that serves the app plus the plan store, sync API and MCP connector |
 | `src/lib/sync.ts` | App ↔ Jarvis Cloud sync |
 | `src/lib/core.ts`, `src/lib/schedule-core.ts` | Pure plan model and scheduler shared by the app and the Worker |
 | `.github/workflows/deploy.yml` | Build and deploy to GitHub Pages |

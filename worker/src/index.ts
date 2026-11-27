@@ -9,6 +9,7 @@ export { PlanStore };
 
 interface Env {
   PLAN: DurableObjectNamespace<PlanStore>;
+  ASSETS: Fetcher;
   JARVIS_TOKEN: string;
 }
 
@@ -34,14 +35,15 @@ const store = (env: Env) => env.PLAN.get(env.PLAN.idFromName('main'));
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
+    const ours = url.pathname.startsWith('/api/') || url.pathname.startsWith('/mcp/');
+    // Everything that isn't the API or the connector is the Jarvis app itself.
+    if (!ours) return env.ASSETS.fetch(req);
     if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
     if (!env.JARVIS_TOKEN || env.JARVIS_TOKEN.length < 24) {
       return json({ error: 'Server not configured: set the JARVIS_TOKEN secret (24+ characters) in Cloudflare.' }, 500);
     }
 
-    if (url.pathname === '/' || url.pathname === '') {
-      return new Response('Jarvis Cloud is running.\n', { headers: { 'Content-Type': 'text/plain', ...CORS } });
-    }
+    if (url.pathname === '/api/health') return json({ ok: true, service: 'Jarvis Cloud' });
 
     if (url.pathname.startsWith('/mcp/')) {
       if (!same(url.pathname.slice(5).replace(/\/$/, ''), env.JARVIS_TOKEN)) return json({ error: 'Not found' }, 404);

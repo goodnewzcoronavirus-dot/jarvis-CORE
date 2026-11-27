@@ -197,20 +197,23 @@ onLocalCommit(() => {
   if (cfg && synced) schedulePush();
 });
 
-if (typeof window !== 'undefined' && cfg) {
-  (async () => {
-    try {
-      accept(await call<Snap>('/api/plan'));
-      ensureTimezone();
-      set('ok');
-    } catch (e) {
-      set(navigator.onLine ? 'error' : 'offline', (e as Error).message);
-    }
-    startLoops();
-  })();
+if (typeof window !== 'undefined') {
+  // Always listen; pull/push do nothing until connected.
   window.addEventListener('focus', () => pull());
   window.addEventListener('online', () => {
     pull();
     push();
   });
+  if (cfg) {
+    (async () => {
+      try {
+        accept(await call<Snap>('/api/plan'));
+        ensureTimezone();
+        set('ok');
+      } catch (e) {
+        set(navigator.onLine ? 'error' : 'offline', (e as Error).message);
+      }
+      startLoops();
+    })();
+  }
 }

@@ -1,0 +1,29 @@
+# One Cloudflare Worker for everything:
+#   - serves the Jarvis web app (the built files in dist/)
+#   - /api/*  sync API for the app        (Bearer JARVIS_TOKEN)
+#   - /mcp/*  the Claude connector (MCP)  (/mcp/<JARVIS_TOKEN>)
+# Cloudflare builds with `npm run build`, then deploys with `npx wrangler deploy`.
+name = "jarvis-core"
+main = "worker/src/index.ts"
+compatibility_date = "2026-11-01"
+workers_dev = true
+preview_urls = false
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+# Only these paths run the server code; everything else is the app.
+run_worker_first = ["/api/*", "/mcp/*"]
+
+# One Durable Object holds the whole plan, so every read sees the latest write.
+[[durable_objects.bindings]]
+name = "PLAN"
+class_name = "PlanStore"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["PlanStore"]
+
+# Secret (set in the Cloudflare dashboard under Settings → Variables and Secrets):
+#   JARVIS_TOKEN  a long random string (Jarvis → Settings → Jarvis Cloud → Generate)

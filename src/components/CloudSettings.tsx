@@ -23,7 +23,8 @@ async function copy(text: string) {
 export function CloudSettings() {
   const sync = useSync();
   const cfg = getConfig();
-  const [url, setUrl] = useState(cfg?.url ?? '');
+  // On the Worker's own address, the server is this same site.
+  const [url, setUrl] = useState(cfg?.url ?? (/\.workers\.dev$|^localhost$|^127\.0\.0\.1$/.test(location.hostname) && location.port !== '5173' ? location.origin : ''));
   const [token, setToken] = useState(cfg?.token ?? '');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
